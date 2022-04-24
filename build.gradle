@@ -11,17 +11,12 @@ ext {
     scalaBinaryVersion = '2.11'
     slf4jVersion = '1.7.32'
     log4jVersion = '2.17.1'
-    flinkVersionNew = flinkVersion.toString().replace("-SNAPSHOT", "") >= "1.15"
 }
 
 // artifact properties
 group = 'net.tbsoft.flink'
 version = '0.1-SNAPSHOT'
-if (flinkVersionNew) {
-    mainClassName = 'net.tbsoft.flink.DataStreamJob'
-} else {
-    mainClassName = 'net.tbsoft.flink.StreamingJob'
-}
+mainClassName = 'net.tbsoft.flink.StreamingJob'
 description = """Flink Quickstart Job"""
 
 sourceCompatibility = javaVersion
@@ -63,19 +58,16 @@ dependencies {
     // Compile-time dependencies that should NOT be part of the
     // shadow jar and are provided in the lib folder of Flink
     // --------------------------------------------------------------
-    if (flinkVersionNew) {
-        implementation "org.apache.flink:flink-streaming-java:${flinkVersion}"
-        implementation "org.apache.flink:flink-clients:${flinkVersion}"
-    } else {
-        implementation "org.apache.flink:flink-streaming-java_${scalaBinaryVersion}:${flinkVersion}"
-        implementation "org.apache.flink:flink-clients_${scalaBinaryVersion}:${flinkVersion}"
-    }
+    implementation "org.apache.flink:flink-streaming-java_${scalaBinaryVersion}:${flinkVersion}"
+    implementation "org.apache.flink:flink-clients_${scalaBinaryVersion}:${flinkVersion}"
+    implementation "org.apache.flink:flink-table-api-java-bridge_${scalaBinaryVersion}:${flinkVersion}"
 
     // --------------------------------------------------------------
     // Dependencies that should be part of the shadow jar, e.g.
     // connectors. These must be in the flinkShadowJar configuration!
     // --------------------------------------------------------------
     //flinkShadowJar "org.apache.flink:flink-connector-kafka:${flinkVersion}"
+    flinkShadowJar "com.ververica:flink-connector-oracle-cdc:2.2.0"
 
     runtimeOnly "org.apache.logging.log4j:log4j-slf4j-impl:${log4jVersion}"
     runtimeOnly "org.apache.logging.log4j:log4j-api:${log4jVersion}"
