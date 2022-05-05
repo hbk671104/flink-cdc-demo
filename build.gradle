@@ -66,7 +66,7 @@ dependencies {
     // connectors. These must be in the flinkShadowJar configuration!
     // --------------------------------------------------------------
     //flinkShadowJar "org.apache.flink:flink-connector-kafka:${flinkVersion}"
-    flinkShadowJar "com.ververica:flink-connector-oracle-cdc:2.2.0"
+    flinkShadowJar "com.ververica:flink-connector-oceanbase-cdc:2.2.1"
 
     runtimeOnly "org.apache.logging.log4j:log4j-slf4j-impl:${log4jVersion}"
     runtimeOnly "org.apache.logging.log4j:log4j-api:${log4jVersion}"

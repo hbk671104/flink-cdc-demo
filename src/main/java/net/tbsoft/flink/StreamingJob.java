@@ -21,7 +21,8 @@ package net.tbsoft.flink;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.source.SourceFunction;
 import com.ververica.cdc.debezium.JsonDebeziumDeserializationSchema;
-import com.ververica.cdc.connectors.oracle.OracleSource;
+import com.ververica.cdc.connectors.oceanbase.OceanBaseSource;
+import com.ververica.cdc.connectors.oceanbase.table.StartupMode;
 
 import java.util.Properties;
 
@@ -62,24 +63,24 @@ public class StreamingJob {
 		 * https://flink.apache.org/docs/latest/apis/streaming/index.html
 		 *
 		 */
-		
-		Properties debeziumProps = new Properties();
-		debeziumProps.setProperty("log.mining.strategy", "online_catalog");
-		debeziumProps.setProperty("log.mining.continuous.mine", String.valueOf(true));
-		debeziumProps.setProperty("database.connection.adapter", "xstream");
-		debeziumProps.setProperty("database.tablename.case.insensitive", String.valueOf(false));
 
-		SourceFunction<String> sourceFunction = OracleSource.<String>builder()
-             .hostname("192.168.0.77")
-             .port(1521)
-             .database("prod") // monitor XE database
-             .schemaList("hr") // monitor inventory schema
-             .tableList("hr.countries") // monitor products table
-             .username("system")
-             .password("oracle")
-			 .debeziumProperties(debeziumProps)
-             .deserializer(new JsonDebeziumDeserializationSchema()) // converts SourceRecord to JSON String
-             .build();
+		SourceFunction<String> sourceFunction = OceanBaseSource.<String>builder()
+            .rsList("127.0.0.1:2882:2881")  // set root server list
+            .startupMode(StartupMode.INITIAL) // set startup mode
+            .username("user@test_tenant")  // set cluster username
+            .password("pswd")  // set cluster password
+            .tenantName("test_tenant")  // set captured tenant name, do not support regex
+            .databaseName("test_db")  // set captured database, support regex
+            .tableName("test_table")  // set captured table, support regex
+            .hostname("127.0.0.1")  // set hostname of OceanBase server or proxy
+            .port(2881)  // set the sql port for OceanBase server or proxy
+            .logProxyHost("127.0.0.1")  // set the hostname of log proxy
+            .logProxyPort(2983)  // set the port of log proxy
+            .deserializer(new JsonDebeziumDeserializationSchema())  // converts SourceRecord to JSON String
+            .build();
+
+		// enable checkpoint
+		env.enableCheckpointing(3000);
 
 		env
 		.addSource(sourceFunction)
