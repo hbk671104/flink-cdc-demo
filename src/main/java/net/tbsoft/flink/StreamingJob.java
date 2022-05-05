@@ -19,8 +19,6 @@
 package net.tbsoft.flink;
 
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
-
-import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.source.SourceFunction;
 import com.ververica.cdc.debezium.JsonDebeziumDeserializationSchema;
 import com.ververica.cdc.connectors.oracle.OracleSource;
@@ -45,28 +43,6 @@ public class StreamingJob {
 		// set up the streaming execution environment
 		final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 
-		Properties debeziumProps = new Properties();
-		debeziumProps.setProperty("log.mining.strategy", "online_catalog");
-		debeziumProps.setProperty("log.mining.continuous.mine", String.valueOf(true));
-		debeziumProps.setProperty("database.tablename.case.insensitive", String.valueOf(false));
-
-		SourceFunction<String> sourceFunction = OracleSource.<String>builder()
-             .hostname("localhost")
-             .port(1521)
-             .database("XE") // monitor XE database
-             .schemaList("hr") // monitor inventory schema
-             .tableList("hr.employees") // monitor products table
-             .username("system")
-             .password("Jq123456")
-			 .debeziumProperties(debeziumProps)
-             .deserializer(new JsonDebeziumDeserializationSchema()) // converts SourceRecord to JSON String
-             .build();
-
-		env
-		.addSource(sourceFunction)
-		.print()
-		.setParallelism(1); // use parallelism 1 for sink to keep message ordering   
-
 		/*
 		 * Here, you can start creating your execution plan for Flink.
 		 *
@@ -86,7 +62,30 @@ public class StreamingJob {
 		 * https://flink.apache.org/docs/latest/apis/streaming/index.html
 		 *
 		 */
+		
+		Properties debeziumProps = new Properties();
+		debeziumProps.setProperty("log.mining.strategy", "online_catalog");
+		debeziumProps.setProperty("log.mining.continuous.mine", String.valueOf(true));
+		debeziumProps.setProperty("database.connection.adapter", "xstream");
+		debeziumProps.setProperty("database.tablename.case.insensitive", String.valueOf(false));
 
+		SourceFunction<String> sourceFunction = OracleSource.<String>builder()
+             .hostname("192.168.0.77")
+             .port(1521)
+             .database("prod") // monitor XE database
+             .schemaList("hr") // monitor inventory schema
+             .tableList("hr.countries") // monitor products table
+             .username("system")
+             .password("oracle")
+			 .debeziumProperties(debeziumProps)
+             .deserializer(new JsonDebeziumDeserializationSchema()) // converts SourceRecord to JSON String
+             .build();
+
+		env
+		.addSource(sourceFunction)
+		.print()
+		.setParallelism(1); // use parallelism 1 for sink to keep message ordering
+		
 		// execute program
 		env.execute("Flink Streaming Java API Skeleton");
 	}
