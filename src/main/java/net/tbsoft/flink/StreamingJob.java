@@ -67,10 +67,10 @@ public class StreamingJob {
 		SourceFunction<String> sourceFunction = OceanBaseSource.<String>builder()
             .rsList("127.0.0.1:2882:2881")  // set root server list
             .startupMode(StartupMode.INITIAL) // set startup mode
-            .username("user@test_tenant")  // set cluster username
-            .password("pswd")  // set cluster password
-            .tenantName("test_tenant")  // set captured tenant name, do not support regex
-            .databaseName("test_db")  // set captured database, support regex
+            .username("root@test")  // set cluster username
+            .password("root")  // set cluster password
+            .tenantName("test")  // set captured tenant name, do not support regex
+            .databaseName("test")  // set captured database, support regex
             .tableName("test_table")  // set captured table, support regex
             .hostname("127.0.0.1")  // set hostname of OceanBase server or proxy
             .port(2881)  // set the sql port for OceanBase server or proxy
