@@ -18,11 +18,11 @@
 
 package net.tbsoft.flink;
 
-import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
-import org.apache.flink.streaming.api.functions.source.SourceFunction;
-import com.ververica.cdc.debezium.JsonDebeziumDeserializationSchema;
-import com.ververica.cdc.connectors.oceanbase.OceanBaseSource;
-import com.ververica.cdc.connectors.oceanbase.table.StartupMode;
+import com.oceanbase.clogproxy.client.config.ObReaderConfig;
+import com.oceanbase.clogproxy.client.LogProxyClient;
+import com.oceanbase.clogproxy.client.exception.LogProxyClientException;
+import com.oceanbase.clogproxy.client.listener.RecordListener;
+import com.oceanbase.oms.logmessage.LogMessage;
 
 import java.util.Properties;
 
@@ -41,53 +41,39 @@ import java.util.Properties;
 public class StreamingJob {
 
 	public static void main(String[] args) throws Exception {
-		// set up the streaming execution environment
-		final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+		ObReaderConfig config = new ObReaderConfig();
+		// 设置OceanBase root server 地址列表，格式为（可以支持多个，用';'分隔）：ip1:rpc_port1:sql_port1;ip2:rpc_port2:sql_port2
+		config.setRsList("127.0.0.1:2882:2881");
+		// 设置用户名和密码（非系统租户）
+		config.setUsername("root@sys");
+		config.setPassword("root");
+		// 设置启动位点（UNIX时间戳，单位s）, 0表示从当前时间启动。
+		config.setStartTimestamp(0L);
+		// 设置订阅表白名单，格式为：tenant.db.table, '*'表示通配.
+		config.setTableWhiteList("test.test.test_table");
 
-		/*
-		 * Here, you can start creating your execution plan for Flink.
-		 *
-		 * Start with getting some data from the environment, like
-		 * 	env.readTextFile(textPath);
-		 *
-		 * then, transform the resulting DataStream<String> using operations
-		 * like
-		 * 	.filter()
-		 * 	.flatMap()
-		 * 	.join()
-		 * 	.coGroup()
-		 *
-		 * and many more.
-		 * Have a look at the programming guide for the Java API:
-		 *
-		 * https://flink.apache.org/docs/latest/apis/streaming/index.html
-		 *
-		 */
+		// 指定oblogproxy服务地址，创建实例.
+		LogProxyClient client = new LogProxyClient("127.0.0.1", 2983, config);
+		// 添加 RecordListener
+		client.addListener(new RecordListener() {
+			@Override
+			public void notify(LogMessage message){
+				// 处理消息
+				System.out.println(message);
+			}
 
-		SourceFunction<String> sourceFunction = OceanBaseSource.<String>builder()
-            .rsList("127.0.0.1:2882:2881")  // set root server list
-            .startupMode(StartupMode.INITIAL) // set startup mode
-            .username("root@test")  // set cluster username
-            .password("root")  // set cluster password
-            .tenantName("test")  // set captured tenant name, do not support regex
-            .databaseName("test")  // set captured database, support regex
-            .tableName("test_table")  // set captured table, support regex
-            .hostname("127.0.0.1")  // set hostname of OceanBase server or proxy
-            .port(2881)  // set the sql port for OceanBase server or proxy
-            .logProxyHost("127.0.0.1")  // set the hostname of log proxy
-            .logProxyPort(2983)  // set the port of log proxy
-            .deserializer(new JsonDebeziumDeserializationSchema())  // converts SourceRecord to JSON String
-            .build();
+			@Override
+			public void onException(LogProxyClientException e) {
+				// 处理错误
+				if (e.needStop()) {
+					// 不可恢复异常，需要停止Client
+					client.stop();
+				}
+			}
+		});
 
-		// enable checkpoint
-		env.enableCheckpointing(3000);
-
-		env
-		.addSource(sourceFunction)
-		.print()
-		.setParallelism(1); // use parallelism 1 for sink to keep message ordering
-		
-		// execute program
-		env.execute("Flink Streaming Java API Skeleton");
+		// 启动
+		client.start();
+		client.join();
 	}
 }
